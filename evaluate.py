@@ -1,13 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# ## **MSCI 641 Final Project - Image Caption Generation using deep learning** 
-
-# In[1]:
-
-
 # importing required libraries 
-
 import string
 import numpy as np
 from PIL import Image
@@ -36,18 +27,10 @@ from nltk.translate.bleu_score import corpus_bleu
 from tqdm import tqdm_notebook as tqdm
 
 # Mouting the google drive 
-
 from google.colab import drive
 drive.mount('/content/drive')
 
-
-# ### **Pre-processing and cleaning : Captions**
-
-# In[2]:
-
-
 # Function for loading a text file into memory
-
 def load_file(filename):
     # Opening the file as read only
     infile = open(filename, 'r')
@@ -55,12 +38,7 @@ def load_file(filename):
     infile.close()
     return text
 
-
-# In[3]:
-
-
 # Getting all images with their captions
-
 def captions_all_images(filename):
     infile = load_file(filename)
     captions = infile.split('\n')
@@ -73,12 +51,7 @@ def captions_all_images(filename):
             descriptions[img[:-2]].append(caption)
     return descriptions
 
-
-# In[4]:
-
-
 # Data cleaning- Converting to lower case, removing puntuations and words containing numbers
-
 def clean_captions(captions):
     table = str.maketrans('','',string.punctuation)
     for img,caps in captions.items():
@@ -98,24 +71,14 @@ def clean_captions(captions):
             captions[img][i]= img_caption
     return captions
 
-
-# In[5]:
-
-
 # building a vocabulary of all unique words
-
 def captions_vocabulary(descriptions):
     vocab = set()
     for key in descriptions.keys():
         [vocab.update(d.split()) for d in descriptions[key]]
     return vocab
 
-
-# In[6]:
-
-
 # Collating all descriptions into one file 
-
 def save_descriptions(descriptions, filename):
     lines = list()
     for key, desc_list in descriptions.items():
@@ -126,12 +89,7 @@ def save_descriptions(descriptions, filename):
     outfile.write(data)
     outfile.close()
 
-
-# In[7]:
-
-
 # Generating and saving file containing clean descriptions - descriptions.txt
-
 dataset_text = "/content/drive/My Drive/Final_MSCI641/data"
 dataset_images = "/content/drive/My Drive/Final_MSCI641/data/Final_MSCI641/data/14kimages"
 filename = dataset_text + "/" + "14k_captionsamples.txt"
@@ -145,13 +103,7 @@ print("Length of vocabulary = ", len(vocabulary))
 save_descriptions(clean_descriptions, "/content/drive/My Drive/Final_MSCI641/data/descriptions.txt")
 
 
-# ### **Feature Extraction : Images** 
-
-# In[ ]:
-
-
 # Feature extraction - takes 2-4 hours; Can directly proceed to next step and load extracted features from saved file 
-
 def extract_features(directory):
         model = Xception( include_top=False, pooling='avg' )
         features = {}
@@ -169,32 +121,16 @@ def extract_features(directory):
 features = extract_features(dataset_images)
 dump(features, open("/content/drive/My Drive/Final_MSCI641/data/features_xception.p","wb"))
 
-
-# In[8]:
-
-
 # Load the above extracted features
 features = load(open("/content/drive/My Drive/Final_MSCI641/data/features_xception.p","rb"))
 
-
-# ### **Loading Training dataset**
-
-# In[9]:
-
-
 # function for loading images
-
 def load_images(filename):
     infile = load_file(filename)
     photos = infile.split("\n")[:-1]
     return photos
 
-
-# In[10]:
-
-
 # function for loading clean descriptions for training dataset
-
 def load_clean_descriptions(filename, photos): 
     file = load_file(filename)
     descriptions = {}
@@ -210,12 +146,7 @@ def load_clean_descriptions(filename, photos):
             descriptions[image].append(desc)
     return descriptions
 
-
-# In[11]:
-
-
 # Loading the pickle file for previously extracted features
-
 def load_features(photos):
     # loading all features
     all_features = load(open("/content/drive/My Drive/Final_MSCI641/data/features_xception.p","rb"))
@@ -224,22 +155,12 @@ def load_features(photos):
     return features
 
 
-# In[12]:
-
-
 filename = dataset_text + "/" + "10k_trainimages_list.txt"
 train_imgs = load_images(filename)
 train_descriptions = load_clean_descriptions("/content/drive/My Drive/Final_MSCI641/data/descriptions.txt", train_imgs)
 train_features = load_features(train_imgs)
 
-
-# ### **Tokenizing the vocabulary**
-
-# In[13]:
-
-
 # converting dictionary to clean list of descriptions
-
 def dict_to_list(descriptions):
     all_desc = []
     for key in descriptions.keys():
@@ -247,11 +168,7 @@ def dict_to_list(descriptions):
     return all_desc
 
 
-# In[14]:
-
-
 #creating tokenizer class to vectorise the corpus
-
 from keras.preprocessing.text import Tokenizer
 def create_tokenizer(descriptions):
     desc_list = dict_to_list(descriptions)
@@ -259,29 +176,15 @@ def create_tokenizer(descriptions):
     tokenizer.fit_on_texts(desc_list)
     return tokenizer
 
-
-
-# In[15]:
-
-
 # giving each word an index, and storing that into tokenizer.p pickle file
-
 tokenizer = create_tokenizer(train_descriptions)
 dump(tokenizer, open('/content/drive/My Drive/Final_MSCI641/data/tokenizer.p', 'wb'))
-
-
-# In[16]:
-
 
 vocab_size = len(tokenizer.word_index) + 1
 vocab_size
 
 
-# In[17]:
-
-
 #calculating maximum length of descriptions
-
 def max_length(descriptions):
     desc_list = dict_to_list(descriptions)
     return max(len(d.split()) for d in desc_list)
@@ -290,13 +193,7 @@ max_length = max_length(descriptions)
 max_length
 
 
-# ### **Creating data generator**
-
-# In[18]:
-
-
 #creating input-output sequence pairs from the image description 
-
 def generator_function(descriptions, features, tokenizer, max_length):
     while 1:
         for key, description_list in descriptions.items():
@@ -305,12 +202,7 @@ def generator_function(descriptions, features, tokenizer, max_length):
             input_image, input_sequence, output_word = text_sequences(tokenizer, max_length, description_list, feature)
             yield [[input_image, input_sequence], output_word]
 
-
-# In[19]:
-
-
 # Returning the input-output sequence pairs in the form of NumPy arrays
-
 def text_sequences(tokenizer, max_length, desc_list, feature):
     X1, X2, y = list(), list(), list()
     # walk through each description for the image
@@ -331,23 +223,11 @@ def text_sequences(tokenizer, max_length, desc_list, feature):
             y.append(out_seq)
     return np.array(X1), np.array(X2), np.array(y)
 
-
-# In[20]:
-
-
 #shape of the input and output for model for verifying the generator function
-
 [a,b],c = next(generator_function(train_descriptions, features, tokenizer, max_length))
 a.shape, b.shape, c.shape
 
-
-# ### **Defining the neural network model based on CNN-LSTM architecture**
-
-# In[21]:
-
-
 # defining the captioning model using CNN-LSTM architecture 
-
 def CNN_LSTM_model(vocab_size, max_length):
     # features from the CNN model squeezed from 2048 to 256 nodes
     inputs1 = Input(shape=(2048,))
@@ -371,14 +251,7 @@ def CNN_LSTM_model(vocab_size, max_length):
     plot_model(model, to_file='/content/drive/My Drive/Final_MSCI641/data/model.png', show_shapes=True)
     return model
 
-
-# ### **Training the CNN-LSTM model for 10 epochs, Using generator function**
-
-# In[ ]:
-
-
 # training our model  #optional to run this cell
-
 print('Dataset: ', len(train_imgs))
 print('Descriptions: train=', len(train_descriptions))
 print('Photos: train=', len(train_features))
@@ -391,7 +264,6 @@ steps = len(train_descriptions)
 
 #next line to be used in case training is interrupted and should be resumed from last saved model
 #model = load_model('/content/drive/My Drive/Final_MSCI641/data/models_output2/model_9.h5')  
-
 for i in range(epochs):
     filepath='/content/drive/My Drive/Final_MSCI641/data/models_output/model_' + str(1+i) + '.h5'
     checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=False, mode='auto',period=1)
@@ -399,14 +271,7 @@ for i in range(epochs):
     generator = generator_function(train_descriptions, train_features, tokenizer, max_length)
     model.fit_generator(generator, epochs=1, steps_per_epoch= steps, verbose=1,callbacks=callbacks_list)
 
-
-# ### **Inference : Generating description for an unseen image in test dataset**
-
-# In[22]:
-
-
 # extract the features for test image
-
 def extract_features(filename, model):
         try:
             image = Image.open(filename)
@@ -425,7 +290,6 @@ def extract_features(filename, model):
 ################################################################################
 
 # word-indexing
-
 def word_for_id(integer, tokenizer):
  for word, index in tokenizer.word_index.items():
      if index == integer:
@@ -434,7 +298,6 @@ def word_for_id(integer, tokenizer):
 
 ################################################################################
 # generating the description for the image
-
 def generate_desc(model, tokenizer, photo, max_length):
     in_text = 'start'
     for i in range(max_length):
@@ -449,10 +312,6 @@ def generate_desc(model, tokenizer, photo, max_length):
         if word == 'end':
             break
     return in_text
-
-
-# In[24]:
-
 
 # Calling the above functions to generate caption for the input test image
 
@@ -473,14 +332,7 @@ description = generate_desc(model, tokenizer, photo, max_length)
 print(description)
 print("\n")
 
-
-# ### **Evaluation : BLEU-1 score**
-
-# In[25]:
-
-
 #preparing test dataset - loading clean testing descriptions (actual)
-
 filename = dataset_text + "/" + "4k_testimages_list.txt"
 test_imgs=load_images(filename)
 # descriptions
@@ -492,12 +344,7 @@ print('Images: test=%d' % len(test_features))
 tokenizer = load(open("/content/drive/My Drive/Final_MSCI641/data/tokenizer.p","rb"))
 max_length=72
 
-
-# In[26]:
-
-
 # function to implement BLEU-1 score : generating a list of predicted captions to compare with actual captions
-
 def evaluate_model(model, descriptionss, photos, tokenizer, max_length):
 	actual, predicted = list(), list()
 	# step over the whole set
@@ -511,12 +358,7 @@ def evaluate_model(model, descriptionss, photos, tokenizer, max_length):
 	# calculate BLEU score
 	print('BLEU-1: %f' % corpus_bleu(actual, predicted, weights=(1.0, 0, 0, 0)))
 
-
-# In[27]:
-
-
 # calculating and calling BLEU-1 score (scale of 0-1)
-
 filename = '/content/drive/My Drive/Final_MSCI641/data/models_output/model_10.h5' 
 model = load_model(filename)
 # evaluating model
