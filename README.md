@@ -50,8 +50,9 @@ venv\Scripts\activate         # Windows
 # 3) install required packages
 pip install -r requirements.txt
 ```
-
+Requirements
 ```text
+
 torch>=1.10
 torchvision
 numpy
