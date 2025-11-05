@@ -105,11 +105,6 @@ Contributions are welcome! Please open an issue or a PR with a clear description
 4. Run tests and ensure linting
 5. Submit a PR with a descriptive title and summary
 
----
-
-## 📄 License
-
-This project uses the **MIT License** — include a `LICENSE` file at the repo root.
 
 ---
 
